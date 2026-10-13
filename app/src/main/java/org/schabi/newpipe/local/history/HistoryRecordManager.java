@@ -173,6 +173,18 @@ public class HistoryRecordManager {
                 .subscribeOn(Schedulers.io());
     }
 
+    /**
+     * Deletes the whole watch history together with all playback states and the streams that are
+     * no longer referenced anywhere, as a single operation.
+     *
+     * @return a Completable that completes once everything has been deleted
+     */
+    public Completable deleteWholeStreamHistoryAndStates() {
+        return deleteCompleteStreamStateHistory().ignoreElement()
+                .andThen(deleteWholeStreamHistory().ignoreElement())
+                .andThen(removeOrphanedRecords().ignoreElement());
+    }
+
     public Flowable<List<StreamHistoryEntry>> getStreamHistorySortedById() {
         return streamHistoryTable.getHistorySortedById().subscribeOn(Schedulers.io());
     }

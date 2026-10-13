@@ -86,27 +86,16 @@ public class HistorySettingsFragment extends BasePreferenceFragment {
                                         "Delete playback states")));
     }
 
-    private static Disposable getWholeStreamHistoryDisposable(
+    private static Disposable getDeleteWatchHistoryDisposable(
             @NonNull final Context context, final HistoryRecordManager recordManager) {
-        return recordManager.deleteWholeStreamHistory()
+        return recordManager.deleteWholeStreamHistoryAndStates()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                        howManyDeleted -> Toast.makeText(context,
+                        () -> Toast.makeText(context,
                                 R.string.watch_history_deleted, Toast.LENGTH_SHORT).show(),
                         throwable -> ErrorUtil.openActivity(context,
                                 new ErrorInfo(throwable, UserAction.DELETE_FROM_HISTORY,
                                         "Delete from history")));
-    }
-
-    private static Disposable getRemoveOrphanedRecordsDisposable(
-            @NonNull final Context context, final HistoryRecordManager recordManager) {
-        return recordManager.removeOrphanedRecords()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                        howManyDeleted -> { },
-                        throwable -> ErrorUtil.openActivity(context,
-                                new ErrorInfo(throwable, UserAction.DELETE_FROM_HISTORY,
-                                        "Clear orphaned records")));
     }
 
     private static Disposable getDeleteSearchHistoryDisposable(
@@ -127,11 +116,8 @@ public class HistorySettingsFragment extends BasePreferenceFragment {
         new AlertDialog.Builder(context)
                 .setTitle(R.string.delete_view_history_alert)
                 .setNegativeButton(R.string.cancel, ((dialog, which) -> dialog.dismiss()))
-                .setPositiveButton(R.string.delete, ((dialog, which) -> {
-                    disposables.add(getDeletePlaybackStatesDisposable(context, recordManager));
-                    disposables.add(getWholeStreamHistoryDisposable(context, recordManager));
-                    disposables.add(getRemoveOrphanedRecordsDisposable(context, recordManager));
-                }))
+                .setPositiveButton(R.string.delete, ((dialog, which) ->
+                        disposables.add(getDeleteWatchHistoryDisposable(context, recordManager))))
                 .show();
     }
 
