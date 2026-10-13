@@ -12,6 +12,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.schabi.newpipe.database.AppDatabase
 import org.schabi.newpipe.database.history.model.SearchHistoryEntry
+import org.schabi.newpipe.database.history.model.StreamHistoryEntity
+import org.schabi.newpipe.database.stream.model.StreamEntity
+import org.schabi.newpipe.database.stream.model.StreamStateEntity
+import org.schabi.newpipe.extractor.stream.StreamType
 import org.schabi.newpipe.testUtil.TestDatabase
 import org.schabi.newpipe.testUtil.TrampolineSchedulerRule
 
@@ -95,6 +99,35 @@ class HistoryRecordManagerTest {
         // should remove everything
         manager.deleteCompleteSearchHistory().test().await().assertValue(entries.size)
         assertThat(database.searchHistoryDAO().getAll().blockingFirst()).isEmpty()
+    }
+
+    @Test
+    fun deleteWholeStreamHistoryAndStates() {
+        val streams = listOf(
+            StreamEntity(
+                serviceId = 0, url = "https://www.youtube.com/watch?v=1", title = "Stream 1",
+                streamType = StreamType.VIDEO_STREAM, duration = 60, uploader = "Uploader"
+            ),
+            StreamEntity(
+                serviceId = 0, url = "https://www.youtube.com/watch?v=2", title = "Stream 2",
+                streamType = StreamType.VIDEO_STREAM, duration = 120, uploader = "Uploader"
+            )
+        )
+        val streamIds = streams.map { database.streamDAO().insert(it) }
+        database.streamHistoryDAO().insert(StreamHistoryEntity(streamIds[0], time, 1))
+        database.streamHistoryDAO().insert(StreamHistoryEntity(streamIds[1], time, 2))
+        database.streamStateDAO().insert(StreamStateEntity(streamIds[0], 10_000))
+        database.streamStateDAO().insert(StreamStateEntity(streamIds[1], 20_000))
+
+        // make sure everything was inserted
+        assertThat(database.streamHistoryDAO().getAll().blockingFirst()).hasSize(2)
+        assertThat(database.streamStateDAO().getAll().blockingFirst()).hasSize(2)
+
+        // clearing the watch history must also delete the playback states and orphaned streams
+        manager.deleteWholeStreamHistoryAndStates().test().await().assertComplete()
+        assertThat(database.streamHistoryDAO().getAll().blockingFirst()).isEmpty()
+        assertThat(database.streamStateDAO().getAll().blockingFirst()).isEmpty()
+        assertThat(database.streamDAO().getAll().blockingFirst()).isEmpty()
     }
 
     private fun insertShuffledRelatedSearches(relatedSearches: Collection<SearchHistoryEntry>) {

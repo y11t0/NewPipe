@@ -88,9 +88,7 @@ public class HistorySettingsFragment extends BasePreferenceFragment {
 
     private static Disposable getDeleteWatchHistoryDisposable(
             @NonNull final Context context, final HistoryRecordManager recordManager) {
-        return recordManager.deleteCompleteStreamStateHistory().ignoreElement()
-                .andThen(recordManager.deleteWholeStreamHistory().ignoreElement())
-                .andThen(recordManager.removeOrphanedRecords().ignoreElement())
+        return recordManager.deleteWholeStreamHistoryAndStates()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         () -> Toast.makeText(context,
